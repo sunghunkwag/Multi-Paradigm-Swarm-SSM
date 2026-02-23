@@ -6,26 +6,25 @@ benchmark, demonstrating the hybrid architecture in action.
 import torch
 import logging
 import argparse
-import sys
 
-from ssm_mamba_swarm.core.config import SwarmConfig
-from ssm_mamba_swarm.envs.seq_prediction_env import EnvConfig
-from ssm_mamba_swarm.core.orchestrator import Orchestrator
-from ssm_mamba_swarm.core.meta_kernel import MetaKernelV2
-from ssm_mamba_swarm.agents import (
-    SymbolicSearchAgent, JEPAWorldModelAgent, LiquidControllerAgent,
-    SNNReflexAgent, SSMStabilityAgent,
-)
-from ssm_mamba_swarm.envs.seq_prediction_env import SequentialPredictionEnv
-from ssm_mamba_swarm.envs.adversarial_env import AdversarialEntropyEnv
-from ssm_mamba_swarm.envs.chaos_1d_env import Chaos1DEnv
-from ssm_mamba_swarm.envs.high_dim_chaos_env import HighDimChaosEnv
+from config import SwarmConfig
+from orchestrator import Orchestrator
+from meta_kernel import MetaKernelV2
+from symbolic_agent import SymbolicSearchAgent
+from jepa_agent import JEPAWorldModelAgent
+from liquid_agent import LiquidControllerAgent
+from snn_agent import SNNReflexAgent
+from ssm_stability import SSMStabilityAgent
+from seq_prediction_env import EnvConfig, SequentialPredictionEnv
+from adversarial_env import AdversarialEntropyEnv
+from chaos_1d_env import Chaos1DEnv
+from high_dim_chaos_env import HighDimChaosEnv
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
 )
-logger = logging.getLogger("ssm_mamba_swarm")
+logger = logging.getLogger("chaos_prediction_envs")
 
 
 def build_swarm(config: SwarmConfig):
@@ -40,7 +39,7 @@ def build_swarm(config: SwarmConfig):
     return agents
 
 
-def run_benchmark(config: SwarmConfig, env_config: EnvConfig = None):
+def run_benchmark(config: SwarmConfig, env_config: EnvConfig | None = None):
     """Run the swarm on the sequential prediction benchmark."""
     if env_config is None:
         env_config = EnvConfig(
@@ -54,15 +53,13 @@ def run_benchmark(config: SwarmConfig, env_config: EnvConfig = None):
     orchestrator = Orchestrator(agents, config.orchestrator, config.tta)
     meta_kernel = MetaKernelV2(agents, config.meta_kernel)
 
-    # Build environment (Fully Coupled Chaos — TOTAL INTEGRITY FINAL)
+    # Build environment (Fully Coupled Chaos)
     env = HighDimChaosEnv(env_config)
 
     logger.info("=" * 60)
-    logger.info("SSM-Mamba Swarm — TOTAL INTEGRITY FINAL BENCHMARK")
+    logger.info("SSM-Mamba Swarm — Chaos Prediction Benchmark")
     logger.info("=" * 60)
     logger.info(f"Agents: {list(agents.keys())}")
-    logger.info(f"Dynamics: Gapped (X,Y,Z) Coupled Global Lorenz/Rossler")
-    logger.info(f"Audit: TOTAL INTEGRITY ACTIVE (No shortcuts allowed)")
     logger.info("=" * 60)
 
     # Run benchmark
@@ -81,22 +78,21 @@ def run_benchmark(config: SwarmConfig, env_config: EnvConfig = None):
         total_mse += info["mse"]
         step += 1
 
-        # Real Training Step for Agents (No more hacks)
+        # Training step for agents
         for name, agent in agents.items():
             if hasattr(agent, "train_step") and not agent.is_suppressed:
-                # JEPA and others learn from (obs, action, next_obs, reward)
                 try:
-                    # Check if train_step takes reward
                     import inspect
+
                     sig = inspect.signature(agent.train_step)
                     if "reward" in sig.parameters:
                         agent.train_step(obs, action, next_obs, reward)
                     else:
                         agent.train_step(obs, action, next_obs)
-                except Exception as e:
-                    logger.debug(f"Training failed for {name}: {e}")
+                except Exception as e:  # noqa: BLE001
+                    logger.debug("Training failed for %s: %s", name, e)
 
-        # Check agent health periodically
+        # Periodic health check and meta-kernel updates
         if step % 20 == 0:
             health_proposals = meta_kernel.check_agent_health()
             if health_proposals:
@@ -105,14 +101,16 @@ def run_benchmark(config: SwarmConfig, env_config: EnvConfig = None):
                 approved = meta_kernel.vote_on_proposals()
                 logs = meta_kernel.execute_proposals(approved)
                 for log in logs:
-                    logger.info(f"MetaKernel: {log}")
+                    logger.info("MetaKernel: %s", log)
 
             status = orchestrator.get_status()
             logger.info(
-                f"Step {step}: MSE={info['mse']:.6f}, "
-                f"Reward={reward:.6f}, "
-                f"Active={len(status['active_agents'])}, "
-                f"TTA={'adapting' if status.get('tta_adapting') else 'stable'}"
+                "Step %d: MSE=%.6f, Reward=%.6f, Active=%d, TTA=%s",
+                step,
+                info["mse"],
+                reward,
+                len(status["active_agents"]),
+                "adapting" if status.get("tta_adapting") else "stable",
             )
 
         obs = next_obs
@@ -124,17 +122,17 @@ def run_benchmark(config: SwarmConfig, env_config: EnvConfig = None):
     logger.info("=" * 60)
     logger.info("BENCHMARK RESULTS")
     logger.info("=" * 60)
-    logger.info(f"Total steps:       {step}")
-    logger.info(f"Average MSE:       {avg_mse:.6f}")
-    logger.info(f"Total reward:      {total_reward:.4f}")
-    logger.info(f"Final status:      {orchestrator.get_status()}")
-    logger.info(f"MetaKernel status: {meta_kernel.get_swarm_status()}")
+    logger.info("Total steps:       %d", step)
+    logger.info("Average MSE:       %.6f", avg_mse)
+    logger.info("Total reward:      %.4f", total_reward)
+    logger.info("Final status:      %s", orchestrator.get_status())
+    logger.info("MetaKernel status: %s", meta_kernel.get_swarm_status())
     logger.info("=" * 60)
 
     return {"avg_mse": avg_mse, "total_reward": total_reward, "steps": step}
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="SSM-Mamba Swarm Benchmark Runner")
     parser.add_argument("--pattern", choices=["sinusoidal", "degradation", "switching"],
                         default="degradation", help="Benchmark pattern")
@@ -142,8 +140,6 @@ def main():
     parser.add_argument("--obs-dim", type=int, default=32, help="Observation dimension")
     parser.add_argument("--d-model", type=int, default=64, help="MambaSSM d_model")
     args = parser.parse_args()
-
-    # THE SINGULARITY: NO SEEDS. Reality is non-deterministic.
 
     config = SwarmConfig(
         observation_dim=args.obs_dim,

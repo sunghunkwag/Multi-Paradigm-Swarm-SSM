@@ -1,19 +1,19 @@
-"""Swarm Orchestrator — upgraded with Test-Time Adaptation (TTA).
+"""Swarm Orchestrator with Test-Time Adaptation (TTA) for flat module layout.
 
-Original: heterogeneous-agent-swarm Orchestrator (weighted_perf/consensus selection)
-Upgrade: Adds TTA-style online adaptation from SSM-MetaRL-TestCompute.
-
-The TTA module monitors proposal quality and adapts the orchestrator's
-selection weights in real-time when distributional shift is detected.
+This version assumes all modules live in the repository root and uses
+absolute imports instead of package-relative ones.
 """
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
 import torch
 import torch.nn as nn
-import logging
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
 
-from ..agents.base_agent import BaseAgent, AgentProposal
-from ..core.config import OrchestratorConfig, TTAConfig
+from base_agent import BaseAgent, AgentProposal
+from config import OrchestratorConfig, TTAConfig
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +21,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OrchestratorState:
     """Tracks the orchestrator's internal state."""
+
     step_count: int = 0
     global_failures: int = 0
-    recent_losses: list = None
+    recent_losses: list[float] | None = None
     is_panic: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.recent_losses is None:
             self.recent_losses = []
 
@@ -36,15 +37,13 @@ class TestTimeAdapter:
 
     Monitors recent proposal quality and performs gradient-free
     adaptation of selection weights when distributional shift is detected.
-
-    Ported from: SSM-MetaRL-TestCompute/adaptation/test_time_adaptation.py
     """
 
-    def __init__(self, agent_names: List[str], config: TTAConfig):
+    def __init__(self, agent_names: List[str], config: TTAConfig) -> None:
         self.config = config
         self.agent_names = agent_names
         # Weight for each agent (softmax-normalized before use)
-        self.logits = {name: 1.0 for name in agent_names}
+        self.logits: Dict[str, float] = {name: 1.0 for name in agent_names}
         self.loss_history: List[float] = []
         self.mean_loss = 0.0
         self.std_loss = 1.0
@@ -91,19 +90,14 @@ class Orchestrator:
 
     Selects the best action from agent proposals using configurable
     strategies: weighted_perf, consensus, or panic mode.
-
-    TTA Integration: When distributional shift is detected (loss spike),
-    the orchestrator adapts its agent selection weights in real-time.
-
-    Args:
-        agents: Dict mapping agent_name -> BaseAgent
-        config: Orchestrator configuration
-        tta_config: Test-Time Adaptation configuration
     """
 
-    def __init__(self, agents: Dict[str, BaseAgent],
-                 config: Optional[OrchestratorConfig] = None,
-                 tta_config: Optional[TTAConfig] = None):
+    def __init__(
+        self,
+        agents: Dict[str, BaseAgent],
+        config: Optional[OrchestratorConfig] = None,
+        tta_config: Optional[TTAConfig] = None,
+    ) -> None:
         if config is None:
             config = OrchestratorConfig()
         if tta_config is None:
@@ -116,33 +110,35 @@ class Orchestrator:
         # TTA adapter
         self.tta = TestTimeAdapter(list(agents.keys()), tta_config) if config.tta_enabled else None
 
-    def select_action(self, observation: torch.Tensor,
-                      ground_truth: Optional[torch.Tensor] = None
-                      ) -> Tuple[torch.Tensor, Dict[str, AgentProposal]]:
+    def select_action(
+        self,
+        observation: torch.Tensor,
+        ground_truth: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, Dict[str, AgentProposal]]:
         """Collect proposals and select best action. Handles dynamic swarm."""
-        # THE EVENT HORIZON: Dynamic Swarm Synchronization
+        # Dynamic Swarm Synchronization
         if self.tta and set(self.agents.keys()) != set(self.tta.agent_names):
-             # Sync new agents into TTA
-             for name in self.agents:
-                 if name not in self.tta.agent_names:
-                     self.tta.agent_names.append(name)
-                     self.tta.logits[name] = 1.0
+            for name in self.agents:
+                if name not in self.tta.agent_names:
+                    self.tta.agent_names.append(name)
+                    self.tta.logits[name] = 1.0
 
         proposals: Dict[str, AgentProposal] = {}
         D_curr = observation.shape[0]
-        
-        # OMEGA: Universal Metric (MDL over MSE)
-        # If agents haven't adapted to D_curr, we use zero-padding / truncation
+
+        # If agents have different observation dims, use zero-padding / truncation
         for name, agent in self.agents.items():
             if not agent.is_suppressed:
                 obs_to_agent = observation
                 if D_curr > agent.observation_dim:
-                    obs_to_agent = observation[:agent.observation_dim]
+                    obs_to_agent = observation[: agent.observation_dim]
                 elif D_curr < agent.observation_dim:
-                    obs_to_agent = torch.cat([observation, torch.zeros(agent.observation_dim - D_curr)])
-                
+                    obs_to_agent = torch.cat(
+                        [observation, torch.zeros(agent.observation_dim - D_curr)]
+                    )
+
                 prop = agent.propose(obs_to_agent)
-                
+
                 # Resync proposal to D_curr
                 if prop.action.shape[0] != D_curr:
                     new_action = torch.zeros(D_curr)
@@ -153,7 +149,8 @@ class Orchestrator:
 
         if not proposals:
             logger.warning("No active agents! Returning zero action.")
-            return torch.zeros(next(iter(self.agents.values())).action_dim), proposals
+            first_agent = next(iter(self.agents.values()))
+            return torch.zeros(first_agent.action_dim), proposals
 
         # Check if we should enter panic mode
         if self.state.global_failures >= self.config.panic_threshold:
@@ -190,7 +187,7 @@ class Orchestrator:
         else:
             weights = {name: 1.0 / len(proposals) for name in proposals}
 
-        weighted_sum = None
+        weighted_sum: torch.Tensor | None = None
         total_weight = 0.0
         for name, proposal in proposals.items():
             w = weights.get(name, 0.0) * proposal.confidence
@@ -200,7 +197,7 @@ class Orchestrator:
                 weighted_sum = weighted_sum + w * proposal.action
             total_weight += w
 
-        if total_weight > 0:
+        if total_weight > 0 and weighted_sum is not None:
             return weighted_sum / total_weight
         return next(iter(proposals.values())).action
 
@@ -221,7 +218,7 @@ class Orchestrator:
         if agent_name and agent_name in self.agents:
             self.agents[agent_name].record_outcome(success)
 
-    def get_status(self) -> Dict:
+    def get_status(self) -> Dict[str, object]:
         """Get orchestrator status summary."""
         return {
             "step_count": self.state.step_count,
