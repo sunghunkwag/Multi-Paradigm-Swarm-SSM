@@ -39,6 +39,13 @@ class SSMStabilityAgent(BaseAgent):
         if self.is_suppressed:
             return AgentProposal(self.name, torch.zeros(self.action_dim), 0.0)
         
+        # ASYMPTOTIC: Robust Perceptual Buffer Management (D-invariant)
+        if observation.shape[0] != self.observation_dim:
+            obs_sync = torch.zeros(self.observation_dim).to(observation.device)
+            min_d = min(self.observation_dim, observation.shape[0])
+            obs_sync[:min_d] = observation[:min_d]
+            observation = obs_sync
+
         with torch.no_grad():
             if observation.dim() == 1: observation = observation.unsqueeze(0)
             action, self._hidden_state = self.model.mamba(observation, self._hidden_state)
@@ -47,7 +54,8 @@ class SSMStabilityAgent(BaseAgent):
             self._observation_history.append(observation.detach())
             if len(self._observation_history) > 50: self._observation_history.pop(0)
 
-        return AgentProposal(self.name, action.detach(), conf)
+        # ASYMPTOTIC: Enforce rank-1 action tensor for topological consistency
+        return AgentProposal(self.name, action.detach().squeeze(), conf)
 
     def get_capacity_metrics(self) -> Dict[str, Any]:
         return {"agent_name": self.name, "params": sum(p.numel() for p in self.model.parameters())}

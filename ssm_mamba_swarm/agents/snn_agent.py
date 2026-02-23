@@ -28,6 +28,13 @@ class SNNReflexAgent(BaseAgent):
         if self.is_suppressed:
             return AgentProposal(self.name, torch.zeros(self.action_dim), 0.0)
         
+        # ASYMPTOTIC: Robust Perceptual Buffer Management (D-invariant)
+        if observation.shape[0] != self.observation_dim:
+            obs_sync = torch.zeros(self.observation_dim).to(observation.device)
+            min_d = min(self.observation_dim, observation.shape[0])
+            obs_sync[:min_d] = observation[:min_d]
+            observation = obs_sync
+
         x = observation.unsqueeze(0)
         if self.mem1 is None:
             self.mem1 = self.model.lif1.init_leaky()

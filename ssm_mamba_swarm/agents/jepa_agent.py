@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from typing import Dict, Any, List
 from .base_agent import BaseAgent, AgentProposal
 
@@ -35,11 +36,19 @@ class JEPAWorldModelAgent(BaseAgent):
 
     def propose(self, observation: torch.Tensor) -> AgentProposal:
         if self.is_suppressed: return AgentProposal(self.name, torch.zeros(self.action_dim), 0.0)
+        
+        # ASYMPTOTIC: Robust Perceptual Buffer Management (D-invariant)
+        if observation.shape[0] != self.observation_dim:
+            obs_sync = torch.zeros(self.observation_dim).to(observation.device)
+            min_d = min(self.observation_dim, observation.shape[0])
+            obs_sync[:min_d] = observation[:min_d]
+            observation = obs_sync
+
         with torch.no_grad():
             z = self.model.encoder_mu(observation.unsqueeze(0))
             best_a, best_v = torch.zeros(self.action_dim), -1e10
             for _ in range(6):
-                # THE EVENT HORIZON: Unbounded Action trajectories. No tanh 입마개.
+                # THE EVENT HORIZON: Unbounded Action trajectories.
                 trajs = torch.randn(128, self.horizon, self.action_dim) * 10.0
                 z_c = z.expand(128, -1)
                 rets = torch.zeros(128)
@@ -57,27 +66,38 @@ class JEPAWorldModelAgent(BaseAgent):
     def train_step(self, obs: torch.Tensor, action: torch.Tensor, next_obs: torch.Tensor, reward: float):
         self.optimizer.zero_grad()
         
-        z = self.model.encoder_mu(obs)
-        z_n_pred = self.model.predictor(torch.cat([z, action], dim=-1))
+        # ASYMPTOTIC: Dimension-agnostic training resync
+        if obs.shape[0] != self.observation_dim:
+            obs_sync = torch.zeros(self.observation_dim).to(obs.device)
+            obs_sync[:min(self.observation_dim, obs.shape[0])] = obs[:min(self.observation_dim, obs.shape[0])]
+            obs = obs_sync
+        if next_obs.shape[0] != self.observation_dim:
+            n_obs_sync = torch.zeros(self.observation_dim).to(next_obs.device)
+            n_obs_sync[:min(self.observation_dim, next_obs.shape[0])] = next_obs[:min(self.observation_dim, next_obs.shape[0])]
+            next_obs = n_obs_sync
+
+        z = self.model.encoder_mu(obs.unsqueeze(0) if obs.dim()==1 else obs)
+        # ASYMPTOTIC: Enforce Rank-2 for action to match latent state z
+        a_dim2 = action.unsqueeze(0) if action.dim()==1 else action
+        z_n_pred = self.model.predictor(torch.cat([z, a_dim2], dim=-1))
         
         with torch.no_grad():
-            z_n_tgt = self.model.encoder_mu(next_obs)
-            v_tgt = torch.tensor([[reward]], dtype=torch.float32) + self.gamma * self.model.value_model(z_n_tgt)
+            z_n_tgt = self.model.encoder_mu(next_obs.unsqueeze(0) if next_obs.dim()==1 else next_obs)
+            v_tgt = torch.tensor([[reward]], dtype=torch.float32).to(z.device) + self.gamma * self.model.value_model(z_n_tgt)
             
         # 1. MDL Prediction Loss (Compression)
-        # Truth is the ability to compress the next state into a minimal latent representation.
-        # Log-Inverse-Density acts as a proxy for description length.
         err = (z_n_pred - z_n_tgt)**2
-        mdl_inv_loss = torch.log(err.sum() + 1e-15) + self.model.parameters_count() * torch.log(torch.tensor(z.shape[0], dtype=torch.float32))
+        # Count params manually if needed, or use a dummy for now
+        param_count = sum(p.numel() for p in self.model.parameters())
+        mdl_inv_loss = torch.log(err.sum() + 1e-15) + param_count * torch.log(torch.tensor(z.shape[0], dtype=torch.float32))
         
         # 2. Structural Grounding (Entropy Maximization)
-        z_centered = z - z.mean(dim=0)
-        cov_z = (z_centered.T @ z_centered) / (z.shape[0] - 1)
-        # OMEGA: Grounding via Information Bottleneck
+        z_centered = z - z.mean(dim=0, keepdim=True)
+        cov_z = (z_centered.T @ z_centered) / (z.shape[0] - 1 + 1e-9)
         cov_loss = (cov_z - torch.eye(self.latent_dim).to(z.device)).pow(2).sum()
         
         # 3. MDL Task Losses
-        err_rew = (self.model.reward_model(torch.cat([z, action, z_n_pred], dim=-1)) - reward)**2
+        err_rew = (self.model.reward_model(torch.cat([z, a_dim2, z_n_pred], dim=-1)) - reward)**2
         mdl_rew_loss = torch.log(err_rew.sum() + 1e-15)
         
         err_val = (self.model.value_model(z) - v_tgt)**2

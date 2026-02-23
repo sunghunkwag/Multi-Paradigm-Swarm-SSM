@@ -84,9 +84,11 @@ def run_benchmark(config: SwarmConfig, env_config: EnvConfig = None):
         # Real Training Step for Agents (No more hacks)
         for name, agent in agents.items():
             if hasattr(agent, "train_step") and not agent.is_suppressed:
-                # JEPA and others learn from (obs, action, next_obs, reward)
                 try:
-                    # Check if train_step takes reward
+                    # ASYMPTOTIC: Trace shapes for audit
+                    if step % 10 == 0:
+                        logger.debug(f"Audit {name}: obs={obs.shape}, action={action.shape}, next_obs={next_obs.shape}")
+                    
                     import inspect
                     sig = inspect.signature(agent.train_step)
                     if "reward" in sig.parameters:
@@ -94,7 +96,8 @@ def run_benchmark(config: SwarmConfig, env_config: EnvConfig = None):
                     else:
                         agent.train_step(obs, action, next_obs)
                 except Exception as e:
-                    logger.debug(f"Training failed for {name}: {e}")
+                    logger.error(f"Training CRASH for {name} at step {step}: {e}")
+                    raise e # Re-raise to see the full traceback in terminal
 
         # Check agent health periodically
         if step % 20 == 0:
@@ -115,6 +118,7 @@ def run_benchmark(config: SwarmConfig, env_config: EnvConfig = None):
                 f"TTA={'adapting' if status.get('tta_adapting') else 'stable'}"
             )
 
+        # Update state for next iteration
         obs = next_obs
         if done:
             break

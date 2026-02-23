@@ -65,7 +65,7 @@ class HighDimChaosEnv(SequentialPredictionEnv):
             
         if np.any(np.isnan(self.states)) or np.any(np.isinf(self.states)):
              # THE EVENT HORIZON: No reward floor. No interpreted failure.
-             return torch.full((self.D,), np.nan), np.nan, True, {"failed": True, "reason": "Event Horizon Collapse"}
+             return torch.full((self.D,), np.nan), np.nan, True, {"mse": 1e9, "failed": True, "reason": "Event Horizon Collapse"}
         
         # OMEGA: Fractal Dimensionality (The expansion/contraction of reality)
         drift_vals = self._drift(self.states)

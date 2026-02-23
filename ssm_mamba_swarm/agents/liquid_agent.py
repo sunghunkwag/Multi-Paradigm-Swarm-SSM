@@ -24,6 +24,13 @@ class LiquidControllerAgent(BaseAgent):
         if self.is_suppressed:
             return AgentProposal(self.name, torch.zeros(self.action_dim), 0.0)
         
+        # ASYMPTOTIC: Robust Perceptual Buffer Management (D-invariant)
+        if observation.shape[0] != self.observation_dim:
+            obs_sync = torch.zeros(self.observation_dim).to(observation.device)
+            min_d = min(self.observation_dim, observation.shape[0])
+            obs_sync[:min_d] = observation[:min_d]
+            observation = obs_sync
+
         x = observation.view(1, 1, -1)
         with torch.no_grad():
             x_proj = self.model.input_proj(x)

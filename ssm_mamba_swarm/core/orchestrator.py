@@ -143,9 +143,14 @@ class Orchestrator:
                 
                 prop = agent.propose(obs_to_agent)
                 
-                # Resync proposal to D_curr
+                # ASYMPTOTIC: Enforce rank-1 consistency and dynamic resync
+                if prop.action.dim() > 1:
+                    prop.action = prop.action.squeeze()
+                if prop.action.dim() == 0: # Handle scalar case
+                    prop.action = prop.action.unsqueeze(0)
+                
                 if prop.action.shape[0] != D_curr:
-                    new_action = torch.zeros(D_curr)
+                    new_action = torch.zeros(D_curr, device=observation.device)
                     min_d = min(D_curr, prop.action.shape[0])
                     new_action[:min_d] = prop.action[:min_d]
                     prop.action = new_action
