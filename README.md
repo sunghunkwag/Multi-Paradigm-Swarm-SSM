@@ -1,5 +1,5 @@
 # chaos-prediction-envs
 
-> **Experimental repository.** This codebase is a research prototype and is not intended for production use. APIs, structure, and behavior may change without notice.
+> **Experimental sandbox.** This repository is a throwaway-style research testbed for chaos prediction and multi-agent swarms. It is not stable, not cleaned up for reuse, and explicitly not intended for production.
 
-A flat-structured experimental testbed combining multi-agent swarm architectures (JEPA, Symbolic, Mamba SSM, Liquid CfC, SNN LIF) with chaotic dynamical system benchmarks (1D Lorenz, high-dimensional chaos, adversarial, sequential prediction). Includes a meta-kernel with NAS-based self-modification and MAML-based online adaptation. All modules reside in the repository root. See `main.py` for the unified benchmark entry point and `requirements.txt` for dependencies.
+The code provides a flat-structured playground for combining heterogeneous agents (JEPA, Symbolic, Mamba SSM, Liquid CfC, SNN LIF) with chaotic dynamical system benchmarks (1D Lorenz, high-dimensional chaos, adversarial, sequential prediction). All modules live in the repository root, imports may change without notice, and breaking changes are expected. Use `main.py` only for ad-hoc experiments after installing the dependencies listed in `requirements.txt`.
