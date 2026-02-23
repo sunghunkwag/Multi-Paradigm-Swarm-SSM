@@ -79,6 +79,14 @@ class JEPAWorldModelAgent(BaseAgent):
         z = self.model.encoder_mu(obs.unsqueeze(0) if obs.dim()==1 else obs)
         # ASYMPTOTIC: Enforce Rank-2 for action to match latent state z
         a_dim2 = action.unsqueeze(0) if action.dim()==1 else action
+        
+        if z.dim() != a_dim2.dim():
+            # Emergency shape reconciliation
+            if z.dim() == 2 and a_dim2.dim() == 1:
+                a_dim2 = a_dim2.unsqueeze(0)
+            elif z.dim() == 1 and a_dim2.dim() == 2:
+                z = z.unsqueeze(0)
+        
         z_n_pred = self.model.predictor(torch.cat([z, a_dim2], dim=-1))
         
         with torch.no_grad():

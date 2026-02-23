@@ -26,8 +26,9 @@ class HighDimChaosEnv(SequentialPredictionEnv):
             
     def _gen_physics_node(self):
         from ssm_mamba_swarm.agents.symbolic_agent import VoidNode
-        # Simple hard-coded seeds for initial chaos, but depth is unbounded
-        ops = ['+', '*', 'exp', 'sin', 'cos', 'log', 'sqrt', 'p', 's', 'c']
+        # ASYMPTOTIC: Safe primitives for environment stability.
+        # Removing log/sqrt from world laws to prevent domain-induced NaN collapse.
+        ops = ['+', '*', 'exp', 'sin', 'cos', 'p', 's', 'c']
         return VoidNode(np.random.choice(ops), p_idx=np.random.randint(0, 3))
 
     def _drift(self, s: np.ndarray) -> np.ndarray:
