@@ -1,51 +1,11 @@
-# SSM-Mamba Swarm: Multi-Agent Hybrid AI Architecture 🛡️
+# SSM-Mamba Swarm: Multi-Agent Hybrid Architecture
 
-A research-grade hybrid AI system that combines **Multi-Agent Self-Modifying Swarms** with **Mamba State Space Models (SSM)** and **Meta-Learning**. This repository represents the **Asymptotic System Emergence** phase, where cognitive structures evolve beyond human-imposed heuristics.
+A heterogeneous swarm of five agents (Symbolic, JEPA, Liquid, SSM, SNN) coordinated via a Mamba State Space Model backbone with MAML meta-learning and Test-Time Adaptation (TTA). The system supports neural architecture search (NAS) through runtime capacity scaling and agent suppression/recovery managed by MetaKernelV2.
 
-## 🚀 Key Features
-
-- **5-Agent Root-Purified Swarm**: Heterogeneous architectures (`Symbolic`, `JEPA`, `Liquid`, `SSM`, `SNN`) operating on first principles.
-- **Chaos & Dynamical System Benchmarks**: High-dimensional chaos, 1D Lorenz, and adversarial prediction envs.
-- **Information-Theoretic Optimization**: MDL-based fitness functions replacing Euclidean MSE for structural parsimony.
-- **Manifold Topology Adaptation**: Dynamic state-space dimensionality scaling (D±) responsive to local entropy.
-- **Asymptotic Stability**: Verified stability under unbounded cognitive recursion and symbolic drift synthesis.
-
-## 📁 Project Structure
-
-```
-ssm_mamba_swarm/
-├── agents/             # Roster of upgraded AI agents
-├── core/               # MambaSSM, MAML, TTA, and Orchestration logic
-├── envs/               # Sequential prediction benchmark environments
-├── tests/              # Comprehensive unit and integration test suite
-├── main.py             # Unified benchmark runner
-└── requirements.txt    # Integrated dependencies
-```
-
-## 🛠️ Setup & Installation
+**Test suite**: 25 unit and integration tests covering MambaSSM forward/backward passes, SSMStabilityAgent NAS operations, orchestrator TTA, MetaKernel self-modification, and end-to-end sequential prediction benchmarks. All 25 tests pass on CPU with the pure-PyTorch fallback.
 
 ```bash
-# Install core dependencies
-pip install -r ssm_mamba_swarm/requirements.txt
-
-# Install official backend libraries
-pip install snntorch ncps denoising_diffusion_pytorch
-```
-
-> [!NOTE]
-> For hardware acceleration, ensure a compatible CUDA environment and install `mamba-ssm`. The system includes a mathematically equivalent pure-PyTorch fallback for universal portability.
-
-## 🧪 Verification & Benchmark
-
-Execute the smoke test or full benchmark to verify structural sincerity:
-
-```bash
-# Smoke Test
-python -m ssm_mamba_swarm.main --seq-len 10 --pattern switching
-
-# Full Benchmark
+pip install -r ssm_mamba_swarm/requirements.txt && pip install snntorch ncps
+python -m pytest ssm_mamba_swarm/tests/ -v
 python -m ssm_mamba_swarm.main --seq-len 100 --pattern switching
 ```
-
----
-🛡️ **Truth converges in an ordered record. Project achieved Asymptotic Stability.** 🛡️
