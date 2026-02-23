@@ -12,25 +12,13 @@ python -m ssm_mamba_swarm.main --seq-len 100 --pattern switching
 
 ## METR-HRS Evaluation
 
-The `ssm_mamba_swarm/eval/` package provides a METR-HRS compatible benchmarking harness with three reference baselines and a structured JSON report.
-
-**HRS score** (per task): `max(0, 1 − MSE_predictor / MSE_zero)` — 1.0 = perfect, 0.0 = on par with always-predicting-zero.
-
-| Task | Difficulty | Description |
-|------|-----------|-------------|
-| `sinusoidal_prediction` | easy | Multi-frequency sinusoidal signals |
-| `degradation_prediction` | easy | Linear drift with noise (RUL-style) |
-| `switching_prediction` | medium | Abrupt regime switching |
-| `chaos_1d_lorenz` | hard | Lorenz system with parameter shifts |
-| `adversarial_entropy` | hard | Logistic map + oscillatory + linear drift |
+`ssm_mamba_swarm/eval/` — multi-seed harness over 5 fixed tasks (easy→hard) with `ZeroPredictor` / `IdentityPredictor` / `LinearPredictor` baselines. Outputs a JSON report with per-task HRS scores: `max(0, 1 − MSE / MSE_zero)`.
 
 ```python
 from ssm_mamba_swarm.eval import EvalHarness, ZeroPredictor, OrchestratorPredictor
 
 harness = EvalHarness(observation_dim=32, seeds=[100, 101, 102])
-report  = harness.evaluate({
-    "zero_predictor": ZeroPredictor(32, 32),
-    "ssm_swarm":      OrchestratorPredictor(my_orchestrator),
-})
-print(report.to_json())   # METR-compatible JSON output
+report  = harness.evaluate({"zero_predictor": ZeroPredictor(32, 32),
+                             "ssm_swarm": OrchestratorPredictor(my_orchestrator)})
+print(report.to_json())
 ```
