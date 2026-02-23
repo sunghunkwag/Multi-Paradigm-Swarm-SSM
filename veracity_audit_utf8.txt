@@ -1,0 +1,71 @@
+﻿python : mamba-ssm not installed. Using pure-PyTorc
+h Mamba fallback. Install with: pip install mamba-s
+sm causal-conv1d>=1.4.0
+위치 줄:1 문자:1
++ python -m ssm_mamba_swarm.main --seq-len 40 --pat
+tern switching 2>&1  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (mamba 
+   -ssm not i...l-conv1d>=1.4.0:String) [], Remot  
+  eException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-02-23 12:51:47,710 [ssm_mamba_swarm] INFO: ===
+===================================================
+======
+2026-02-23 12:51:47,710 [ssm_mamba_swarm] INFO: SSM
+-Mamba Swarm \u2014 TOTAL INTEGRITY FINAL BENCHMARK
+2026-02-23 12:51:47,710 [ssm_mamba_swarm] INFO: ===
+===================================================
+======
+2026-02-23 12:51:47,710 [ssm_mamba_swarm] INFO: Age
+nts: ['symbolic_search', 'jepa_world_model', 'liqui
+d_controller', 'ssm_stability', 'snn_reflex']
+2026-02-23 12:51:47,711 [ssm_mamba_swarm] INFO: Dyn
+amics: Gapped (X,Y,Z) Coupled Global Lorenz/Rossler
+2026-02-23 12:51:47,711 [ssm_mamba_swarm] INFO: Aud
+it: TOTAL INTEGRITY ACTIVE (No shortcuts allowed)
+2026-02-23 12:51:47,711 [ssm_mamba_swarm] INFO: ===
+===================================================
+======
+2026-02-23 12:51:48,515 [ssm_mamba_swarm] INFO: Ste
+p 20: MSE=0.095135, Reward=-0.095135, Active=5, TTA
+=stable
+2026-02-23 12:51:50,423 [ssm_mamba_swarm] INFO: Ste
+p 40: MSE=0.071345, Reward=-0.071345, Active=5, TTA
+=stable
+2026-02-23 12:51:50,425 [ssm_mamba_swarm] INFO: ===
+===================================================
+======
+2026-02-23 12:51:50,425 [ssm_mamba_swarm] INFO: BEN
+CHMARK RESULTS
+2026-02-23 12:51:50,425 [ssm_mamba_swarm] INFO: ===
+===================================================
+======
+2026-02-23 12:51:50,425 [ssm_mamba_swarm] INFO: Tot
+al steps:       40
+2026-02-23 12:51:50,425 [ssm_mamba_swarm] INFO: Ave
+rage MSE:       0.090457
+2026-02-23 12:51:50,425 [ssm_mamba_swarm] INFO: Tot
+al reward:      -3.6183
+2026-02-23 12:51:50,425 [ssm_mamba_swarm] INFO: Fin
+al status:      {'step_count': 40, 'global_failures
+': 0, 'is_panic': False, 'active_agents': ['symboli
+c_search', 'jepa_world_model', 'liquid_controller',
+ 'ssm_stability', 'snn_reflex'], 'tta_weights': {'s
+ymbolic_search': 0.20000000298023224, 'jepa_world_m
+odel': 0.20000000298023224, 'liquid_controller': 0.
+20000000298023224, 'ssm_stability': 0.2000000029802
+3224, 'snn_reflex': 0.20000000298023224}, 'tta_adap
+ting': False}
+2026-02-23 12:51:50,425 [ssm_mamba_swarm] INFO: Met
+aKernel status: {'active_agents': ['symbolic_search
+', 'jepa_world_model', 'liquid_controller', 'ssm_st
+ability', 'snn_reflex'], 'suppressed_agents': [], '
+pending_proposals': 0, 'history_length': 0, 'nas_en
+abled': True, 'maml_enabled': True}
+2026-02-23 12:51:50,425 [ssm_mamba_swarm] INFO: ===
+===================================================
+======
+

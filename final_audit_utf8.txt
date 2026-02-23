@@ -1,0 +1,42 @@
+﻿python : mamba-ssm not installed. Using pure-PyTo
+rch Mamba fallback. Install with: pip install mam
+ba-ssm causal-conv1d>=1.4.0
+위치 줄:1 문자:1
++ python -m ssm_mamba_swarm.main --seq-len 40 --p
+attern switching 2>&1  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (mam 
+   ba-ssm not i...l-conv1d>=1.4.0:String) [], R  
+  emoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-02-23 11:58:33,534 [ssm_mamba_swarm.agents.s
+sm_stability] INFO: SSMStabilityAgent initialized
+ with MambaSSM(in=32, out=32, d_model=64, d_state
+=16, backend=fallback)
+2026-02-23 11:58:33,556 [ssm_mamba_swarm] INFO: =
+=================================================
+==========
+2026-02-23 11:58:33,556 [ssm_mamba_swarm] INFO: S
+SM-Mamba Swarm \u2014 TOTAL INTEGRITY FINAL BENCH
+MARK
+2026-02-23 11:58:33,557 [ssm_mamba_swarm] INFO: =
+=================================================
+==========
+2026-02-23 11:58:33,557 [ssm_mamba_swarm] INFO: A
+gents: ['symbolic_search', 'jepa_world_model', 'l
+iquid_controller', 'ssm_stability', 'snn_reflex']
+2026-02-23 11:58:33,557 [ssm_mamba_swarm] INFO: D
+ynamics: Gapped (X,Y,Z) Coupled Global Lorenz/Ros
+sler
+2026-02-23 11:58:33,557 [ssm_mamba_swarm] INFO: A
+udit: TOTAL INTEGRITY ACTIVE (No shortcuts allowe
+d)
+2026-02-23 11:58:33,557 [ssm_mamba_swarm] INFO: =
+=================================================
+==========
+2026-02-23 12:00:20,292 [ssm_mamba_swarm] INFO: S
+tep 20: MSE=0.035425, Reward=-0.035425, Active=5,
+ TTA=stable
+
